@@ -145,9 +145,11 @@ public class MockClient implements Client {
 
     private String findFile(String filename) throws IOException {
         String[] list = mContext.getAssets().list(mMockDir);
-        String regex = String.format("%s.%s", filename, "http");
+//        String regex = String.format("%s.%s", filename, "http");
+        String regex = String.format("%s\\.\\w+", filename).replaceAll("\\#", "\\\\#");
         for (String path : list) {
-            if (path.equals(regex)) {
+//            if (path.equals(regex)) {
+            if (path.matches(regex)) {
                 return path;
             }
         }
@@ -201,12 +203,23 @@ public class MockClient implements Client {
     public Response execute(Request request) throws IOException {
 
         String filename = getFileName(request);
-        String key = encrypt(filename);
+        String key;
+        if (!filename.contains("?") &&
+                (filename.startsWith("PATCH")
+                || filename.startsWith("DELETE")
+                || filename.startsWith("GET")
+                || filename.startsWith("POST")
+                || filename.startsWith("PUT"))) {
+            key = encrypt(filename);
+        } else {
+            key = encrypt(filename);
+            key = encrypt(key);
+        }
         String fullPath;
         if (mRouteMap.containsKey(key)) {
             fullPath = mRouteMap.get(key);
         } else {
-            fullPath = findFile(filename);
+            fullPath = findFile(key);
             if (fullPath != null) mRouteMap.put(key, fullPath);
         }
 
